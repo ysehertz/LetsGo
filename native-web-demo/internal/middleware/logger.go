@@ -15,6 +15,7 @@ func Logging(next http.Handler) http.Handler {
 		// 1. 在请求到达核心业务逻辑之前执行
 		startTime := time.Now()
 		log.Printf("--> %s %s", r.Method, r.URL.Path)
+		log.Printf("第一次提交")
 
 		// 2. 调用下一个处理器 (next.ServeHTTP)
 		// 这可能是另一个中间件，也可能是我们最终的 mux。
