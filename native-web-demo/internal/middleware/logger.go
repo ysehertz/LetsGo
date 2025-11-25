@@ -17,6 +17,9 @@ func Logging(next http.Handler) http.Handler {
 		log.Printf("--> %s %s", r.Method, r.URL.Path)
 		log.Printf("第一次提交")
 		log.Printf("第二次提交")
+		log.Printf("第三次提交")
+		log.Printf("第四次提交")
+		log.Printf("第五次提交")
 
 		// 2. 调用下一个处理器 (next.ServeHTTP)
 		// 这可能是另一个中间件，也可能是我们最终的 mux。
