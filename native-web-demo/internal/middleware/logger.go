@@ -2,32 +2,26 @@ package middleware
 
 import (
 	"log"
-	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
-// Logging 是一个中间件函数，用于记录每个请求的信息。
-// 它接收一个 http.Handler 作为参数，并返回一个新的 http.Handler。
-func Logging(next http.Handler) http.Handler {
-	// http.HandlerFunc 是一个适配器，允许普通的函数作为 http.Handler 使用。
-	// 我们返回的这个函数就是实际处理请求的中间件处理器。
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// Logging 返回一个 Gin 中间件函数，用于记录每个请求的信息。
+// Gin 中间件的签名是 func(c *gin.Context)。
+func Logging() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		// 1. 在请求到达核心业务逻辑之前执行
 		startTime := time.Now()
-		log.Printf("--> %s %s", r.Method, r.URL.Path)
-		log.Printf("第一次提交")
-		log.Printf("第二次提交")
-		log.Printf("第三次提交")
-		log.Printf("第四次提交")
-		log.Printf("第五次提交")
+		log.Printf("--> %s %s", c.Request.Method, c.Request.URL.Path)
 
-		// 2. 调用下一个处理器 (next.ServeHTTP)
-		// 这可能是另一个中间件，也可能是我们最终的 mux。
-		// 请求会在这里被"暂停"，直到核心业务逻辑处理完成。
-		next.ServeHTTP(w, r)
+		// 2. 调用链中的下一个中间件或最终的处理器。
+		// c.Next() 类似于 net/http 中间件中的 next.ServeHTTP(w, r)，
+		// 它将控制权传递给下一个处理器，直到所有处理器执行完毕。
+		c.Next()
 
-		// 3. 在核心业务逻辑处理完成之后执行
+		// 3. 在所有后续处理器执行完成之后执行
 		duration := time.Since(startTime)
-		log.Printf("<-- %s %s (%v)", r.Method, r.URL.Path, duration)
-	})
+		log.Printf("<-- %s %s (%v)", c.Request.Method, c.Request.URL.Path, duration)
+	}
 }
