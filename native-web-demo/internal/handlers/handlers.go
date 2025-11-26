@@ -7,41 +7,49 @@ import (
 	"native-web-demo/internal/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm" // 导入 gorm 包
 )
+
+// Handler 结构体持有数据库连接，以便其方法可以访问数据库。
+// 这是在 Go 中实现依赖注入的一种常见模式。
+type Handler struct {
+	DB *gorm.DB
+}
 
 // Home 是一个 Gin 处理器函数。
 func Home(c *gin.Context) {
-	// c.String 简化了返回字符串响应的操作，自动处理 Content-Type。
 	c.String(http.StatusOK, "Hello Gin!")
 }
 
-// GetUsers 处理 GET /users 请求。
-func GetUsers(c *gin.Context) {
-	users := []models.User{
-		{ID: 1, Name: "Alice", Email: "alice@example.com"},
-		{ID: 2, Name: "Bob", Email: "bob@example.com"},
-	}
-
-	// c.JSON 简化了返回 JSON 响应的操作。
-	// 它会自动设置 Content-Type: application/json 并进行 JSON 序列化。
-	c.JSON(http.StatusOK, users)
-}
-
-// CreateUser 处理 POST /users 请求。
-func CreateUser(c *gin.Context) {
-	var newUser models.User
-
-	// c.BindJSON 自动从请求体中解析 JSON 并填充到 newUser 结构体中。
-	// 它还内置了验证功能（如果结构体有验证标签）。
-	// 这比手动的 json.NewDecoder().Decode() 要方便得多。
-	if err := c.BindJSON(&newUser); err != nil {
-		// 如果绑定失败，Gin 会自动返回一个 400 Bad Request 响应。
-		// 我们这里可以简单地返回，或者添加自定义的错误处理。
+// GetUsers 处理 GET /users 请求，现在从数据库中查询用户。
+func (h *Handler) GetUsers(c *gin.Context) {
+	var users []models.User
+	// 使用 h.DB.Find 从数据库查询所有用户。
+	// GORM 会自动将查询结果映射到 users 切片中。
+	if result := h.DB.Find(&users); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve users"})
 		return
 	}
 
-	log.Printf("Received new user: %+v", newUser)
+	c.JSON(http.StatusOK, users)
+}
 
-	// 返回创建的用户对象和 201 Created 状态码。
+// CreateUser 处理 POST /users 请求，现在将用户保存到数据库。
+func (h *Handler) CreateUser(c *gin.Context) {
+	var newUser models.User
+
+	if err := c.BindJSON(&newUser); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 使用 h.DB.Create 将新用户保存到数据库。
+	// newUser 结构体嵌入了 gorm.Model，GORM 会自动为其分配 ID 和时间戳。
+	if result := h.DB.Create(&newUser); result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		return
+	}
+
+	log.Printf("User created: %+v", newUser)
 	c.JSON(http.StatusCreated, newUser)
 }
